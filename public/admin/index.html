@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PosomePa Admin - Host Applications</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%); min-height: 100vh; }
+    .gradient-bg { background: linear-gradient(135deg, #8B5CF6, #7C3AED); }
+    .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
+    .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.5; }
+    .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(139,92,246,0.2); }
+    .app-card { transition: all 0.2s; }
+    .app-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+    .badge-pending { background: #FEF3C7; color: #D97706; }
+    .badge-verified { background: #D1FAE5; color: #059669; }
+    .badge-rejected { background: #FEE2E2; color: #DC2626; }
+    .tab-btn { padding: 10px 20px; border-radius: 8px; font-weight: 500; transition: all 0.2s; }
+    .tab-btn.active { background: #8B5CF6; color: white; }
+    .tab-btn:hover:not(.active) { background: #EDE9FE; }
+    .btn-primary { background: linear-gradient(135deg, #8B5CF6, #7C3AED); transition: all 0.2s; }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(139,92,246,0.4); }
+    .btn-approve { background: #059669; }
+    .btn-approve:hover { background: #047857; }
+    .btn-reject { background: #DC2626; }
+    .btn-reject:hover { background: #B91C1C; }
+    .spinner { border: 3px solid #E5E7EB; border-top: 3px solid #8B5CF6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .modal { animation: modalIn 0.3s ease-out; }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .doc-preview { max-width: 200px; max-height: 150px; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
+    .doc-preview:hover { transform: scale(1.05); }
+    .toast { animation: slideIn 0.3s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  </style>
+</head>
+<body class="p-6">
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3"></div>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-6">
+    <div class="blob w-96 h-96 bg-purple-300 -top-48 -left-48"></div>
+    <div class="blob w-80 h-80 bg-pink-300 top-20 right-10"></div>
+    
+    <div class="card rounded-3xl p-10 w-full max-w-md relative z-10 shadow-2xl">
+      <div class="text-center mb-8">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 1.5rem;width:100%;">
+          <svg id="posomepa-logo" viewBox="0 0 310 115" width="310" height="90" xmlns="http://www.w3.org/2000/svg" overflow="visible" style="display:block;margin:0 auto;">
+            <defs>
+              <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#7B6CF6"/>
+                <stop offset="100%" stop-color="#E879C6"/>
+              </linearGradient>
+            </defs>
+            <text id="lP" font-family="Inter,sans-serif" font-size="72" font-weight="500"
+                  fill="url(#logoGrad)" x="0" y="80" opacity="0">P</text>
+            <rect id="lPill" x="106" y="30" width="44" height="44" rx="22" ry="22"
+                  fill="none" stroke="url(#logoGrad)" stroke-width="3.5" opacity="0"/>
+            <text id="lSome" font-family="Inter,sans-serif" font-size="16" font-weight="600"
+                  letter-spacing="3.5" fill="url(#logoGrad)" text-anchor="middle"
+                  dominant-baseline="central" x="128" y="52" opacity="0">SOME</text>
+            <text id="lPA" font-family="Inter,sans-serif" font-size="72" font-weight="500"
+                  fill="url(#logoGrad)" x="206" y="80" opacity="0">PA</text>
+            <text id="lTagline" font-family="Inter,sans-serif" font-size="13" font-weight="400"
+                  letter-spacing="2.5" fill="#9CA3AF" text-anchor="middle"
+                  x="128" y="105" opacity="0">post some places</text>
+          </svg>
+        </div>
+        <p class="text-gray-500 mt-2">Sign in to manage host applications</p>
+      </div>
+
+      <script>
+      (function(){
+        const P       = document.getElementById('lP');
+        const pill    = document.getElementById('lPill');
+        const some    = document.getElementById('lSome');
+        const PA      = document.getElementById('lPA');
+        const tagline = document.getElementById('lTagline');
+
+        const PILL_CX      = 128;
+        const PILL_W_START = 44;
+        const PILL_W_END   = 148;
+        const PA_X_FINAL   = 206;
+
+        function easeOut(t){ return 1 - Math.pow(1-t, 3); }
+        function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+
+        function run(dur, fn, done){
+          const s = performance.now();
+          (function f(n){
+            const t = Math.min((n-s)/dur, 1);
+            fn(t);
+            if(t < 1) requestAnimationFrame(f);
+            else if(done) done();
+          })(performance.now());
+        }
+
+        function reset(){
+          P.style.opacity    = 0; P.setAttribute('x', 0);
+          pill.style.opacity = 0;
+          pill.setAttribute('width', PILL_W_START);
+          pill.setAttribute('x', PILL_CX - PILL_W_START/2);
+          some.style.opacity    = 0;
+          PA.style.opacity      = 0; PA.setAttribute('x', PA_X_FINAL);
+          tagline.style.opacity = 0;
+        }
+
+        function playIntro(onComplete){
+          setTimeout(()=>{
+            run(400, t=>{ const e=easeOut(t); P.style.opacity=e; P.setAttribute('x', 0-20*(1-e)); }, ()=>{
+            setTimeout(()=>{
+              run(350, t=>{ pill.style.opacity=easeOut(t); }, ()=>{
+              setTimeout(()=>{
+                run(680, t=>{
+                  const te=easeInOut(t), w=PILL_W_START+(PILL_W_END-PILL_W_START)*te;
+                  pill.setAttribute('width', w);
+                  pill.setAttribute('x', PILL_CX - w/2);
+                  if(t>0.45) some.style.opacity=easeOut((t-0.45)/0.55);
+                }, ()=>{
+                setTimeout(()=>{
+                  run(400, t=>{ const e=easeOut(t); PA.style.opacity=e; PA.setAttribute('x', PA_X_FINAL+20*(1-e)); }, ()=>{
+                  setTimeout(()=>{
+                    run(500, t=>{ tagline.style.opacity=easeOut(t); }, onComplete);
+                  }, 180);
+                  });
+                }, 100);
+                });
+              }, 80);
+              });
+            }, 80);
+            });
+          }, 200);
+        }
+
+        function playOutro(onComplete){
+          run(600, t=>{
+            const e = 1 - easeOut(t);
+            P.style.opacity       = e;
+            pill.style.opacity    = e;
+            some.style.opacity    = e;
+            PA.style.opacity      = e;
+            tagline.style.opacity = e;
+          }, onComplete);
+        }
+
+        function cycle(){
+          reset();
+          playIntro(()=>{
+            setTimeout(()=>{
+              playOutro(()=>{ setTimeout(cycle, 400); });
+            }, 2500);
+          });
+        }
+
+        cycle();
+      })();
+      </script>
+
+      <form id="login-form" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+          <input type="email" id="login-email" required
+            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition"
+            placeholder="admin@example.com">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <input type="password" id="login-password" required
+            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition"
+            placeholder="••••••••">
+        </div>
+        <div id="login-error" class="hidden text-red-500 text-sm text-center py-2"></div>
+        <button type="submit" id="login-btn"
+          class="btn-primary w-full py-4 rounded-xl text-white font-semibold text-lg shadow-lg">
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboard-screen" class="hidden max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800">Host Applications</h1>
+        <p class="text-gray-500 mt-1">Review and manage host applications</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="admin-email" class="text-gray-600 text-sm"></span>
+        <button onclick="logout()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-sm font-medium transition">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div class="stat-card card rounded-2xl p-5 shadow-lg">
+        <p class="text-gray-500 text-sm">Total</p>
+        <p id="stat-total" class="text-3xl font-bold text-gray-800">0</p>
+      </div>
+      <div class="stat-card card rounded-2xl p-5 shadow-lg">
+        <p class="text-gray-500 text-sm">Pending</p>
+        <p id="stat-pending" class="text-3xl font-bold text-yellow-600">0</p>
+      </div>
+      <div class="stat-card card rounded-2xl p-5 shadow-lg">
+        <p class="text-gray-500 text-sm">Verified</p>
+        <p id="stat-verified" class="text-3xl font-bold text-green-600">0</p>
+      </div>
+      <div class="stat-card card rounded-2xl p-5 shadow-lg">
+        <p class="text-gray-500 text-sm">Rejected</p>
+        <p id="stat-rejected" class="text-3xl font-bold text-red-600">0</p>
+      </div>
+      <div class="stat-card card rounded-2xl p-5 shadow-lg">
+        <p class="text-gray-500 text-sm">Verified Hosts</p>
+        <p id="stat-hosts" class="text-3xl font-bold text-purple-600">0</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+      <button onclick="filterApplications('all')" class="tab-btn active" data-tab="all">All</button>
+      <button onclick="filterApplications('pending')" class="tab-btn" data-tab="pending">Pending</button>
+      <button onclick="filterApplications('verified')" class="tab-btn" data-tab="verified">Verified</button>
+      <button onclick="filterApplications('rejected')" class="tab-btn" data-tab="rejected">Rejected</button>
+      <button onclick="filterApplications('cancellations')" class="tab-btn" data-tab="cancellations">Cancellations</button>
+    </div>
+
+    <!-- Applications List -->
+    <div id="applications-list" class="space-y-4">
+      <div class="text-center py-12">
+        <div class="spinner mx-auto mb-4"></div>
+        <p class="text-gray-500">Loading applications...</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" class="flex justify-center items-center gap-2 mt-8"></div>
+  </div>
+
+  <!-- Application Detail Modal -->
+  <div id="detail-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/50" onclick="closeDetailModal()"></div>
+    <div class="modal absolute inset-4 md:inset-10 bg-white rounded-3xl overflow-hidden flex flex-col max-w-4xl mx-auto">
+      <div class="gradient-bg p-6 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white">Application Details</h2>
+        <button onclick="closeDetailModal()" class="text-white/80 hover:text-white">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="detail-content" class="flex-1 overflow-y-auto p-6"></div>
+      <div id="detail-actions" class="p-6 border-t flex justify-end gap-4"></div>
+    </div>
+  </div>
+
+  <!-- Reject Reason Modal -->
+  <div id="reject-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/50" onclick="closeRejectModal()"></div>
+    <div class="modal absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-8 w-full max-w-lg">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Rejection Reason</h3>
+      <p class="text-gray-500 text-sm mb-4">Please provide a reason for rejecting this application. The applicant will be notified.</p>
+      <textarea id="reject-reason" rows="4" 
+        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition resize-none"
+        placeholder="Enter rejection reason..."></textarea>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeRejectModal()" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 font-medium transition">
+          Cancel
+        </button>
+        <button onclick="confirmReject()" id="reject-modal-btn" class="btn-reject px-6 py-3 rounded-xl text-white font-medium transition">
+          Reject Application
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div id="image-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6" onclick="closeImageModal()">
+    <button class="absolute top-6 right-6 text-white/80 hover:text-white">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+    <img id="modal-image" src="" alt="Document" class="max-w-full max-h-full rounded-lg">
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let authToken = localStorage.getItem('adminToken');
+    let currentFilter = 'all';
+    let currentPage = 1;
+    let selectedAppId = null;
+    let selectedAppForReject = null;
+
+    // Check auth on load
+    checkAuth();
+
+    async function checkAuth() {
+      if (!authToken) {
+        showLogin();
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/admin/me`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        
+        if (data.authenticated) {
+          showDashboard();
+          loadStats();
+          loadApplications();
+        } else {
+          logout();
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        logout();
+      }
+    }
+
+    // Login
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner mx-auto" style="width:20px;height:20px;border-width:2px"></div>';
+      errorEl.classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          authToken = data.token;
+          localStorage.setItem('adminToken', authToken);
+          localStorage.setItem('adminEmail', data.email);
+          showDashboard();
+          loadStats();
+          loadApplications();
+        } else {
+          errorEl.textContent = data.message || 'Invalid credentials';
+          errorEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorEl.textContent = 'Connection error. Please try again.';
+        errorEl.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In';
+      }
+    });
+
+    function logout() {
+      authToken = null;
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminEmail');
+      showLogin();
+    }
+
+    function showLogin() {
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('dashboard-screen').classList.add('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard-screen').classList.remove('hidden');
+      document.getElementById('admin-email').textContent = localStorage.getItem('adminEmail') || '';
+    }
+
+    // Load Stats
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/stats`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        
+        document.getElementById('stat-total').textContent = data.totalApplications || 0;
+        document.getElementById('stat-pending').textContent = data.pending || 0;
+        document.getElementById('stat-verified').textContent = data.verified || 0;
+        document.getElementById('stat-rejected').textContent = data.rejected || 0;
+        document.getElementById('stat-hosts').textContent = data.verifiedHosts || 0;
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    }
+
+    // Load Applications
+    async function loadApplications(page = 1) {
+      currentPage = page;
+      const listEl = document.getElementById('applications-list');
+      listEl.innerHTML = `
+        <div class="text-center py-12">
+          <div class="spinner mx-auto mb-4"></div>
+          <p class="text-gray-500">Loading applications...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/applications?status=${currentFilter}&page=${page}&limit=10`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        
+        if (data.applications.length === 0) {
+          listEl.innerHTML = `
+            <div class="card rounded-2xl p-12 text-center">
+              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-gray-500">No applications found</p>
+            </div>
+          `;
+          document.getElementById('pagination').innerHTML = '';
+          return;
+        }
+
+        listEl.innerHTML = data.applications.map(app => `
+          <div class="app-card card rounded-2xl p-6 shadow-lg fade-in cursor-pointer" onclick="viewApplication('${app._id}')">
+            <div class="flex items-start justify-between">
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center text-white font-bold">
+                  ${(app.fullName || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-800">${app.fullName}</h3>
+                  <p class="text-gray-500 text-sm">${app.email}</p>
+                  <p class="text-gray-400 text-xs mt-1">Phone: ${app.phone || 'N/A'}</p>
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-2">
+                <span class="badge badge-${app.status}">${app.status.charAt(0).toUpperCase() + app.status.slice(1)}</span>
+                <span class="text-gray-400 text-xs">${formatDate(app.createdAt)}</span>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t flex gap-4 text-sm text-gray-500">
+              <span>Service: ${app.serviceType || 'N/A'}</span>
+              <span>ID: ${app.idType?.toUpperCase() || 'N/A'} - ${app.idNumber || 'N/A'}</span>
+              <span>City: ${app.city || 'N/A'}</span>
+            </div>
+          </div>
+        `).join('');
+
+        // Pagination
+        renderPagination(data.pagination);
+      } catch (err) {
+        console.error('Failed to load applications:', err);
+        listEl.innerHTML = `
+          <div class="card rounded-2xl p-12 text-center">
+            <p class="text-red-500">Failed to load applications</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderPagination(pagination) {
+      const { page, pages, total } = pagination;
+      const container = document.getElementById('pagination');
+      
+      if (pages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      if (page > 1) {
+        html += `<button onclick="loadApplications(${page - 1})" class="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50">Previous</button>`;
+      }
+      html += `<span class="px-4 py-2">Page ${page} of ${pages} (${total} total)</span>`;
+      if (page < pages) {
+        html += `<button onclick="loadApplications(${page + 1})" class="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50">Next</button>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function filterApplications(status) {
+      currentFilter = status;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === status);
+      });
+      if (status === 'cancellations') {
+        loadCancellations();
+      } else {
+        loadApplications(1);
+      }
+    }
+
+    // Load Cancellations
+    async function loadCancellations() {
+      const listEl = document.getElementById('applications-list');
+      listEl.innerHTML = `
+        <div class="text-center py-12">
+          <div class="spinner mx-auto mb-4"></div>
+          <p class="text-gray-500">Loading cancellation requests...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/bookings/admin?status=cancellation_requested`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        console.log('Cancellations API response:', data);
+
+        if (!data.bookings?.length) {
+          listEl.innerHTML = `
+            <div class="card rounded-2xl p-12 text-center">
+              <p class="text-gray-500">No cancellation requests (${data.bookings?.length || 0} found)</p>
+            </div>
+          `;
+          return;
+        }
+
+        listEl.innerHTML = data.bookings.map(booking => {
+          const bookingDate = new Date(booking.date);
+          const [startHours, startMins] = booking.startTime.split(':').map(Number);
+          bookingDate.setHours(startHours, startMins, 0, 0);
+          const bookingStartMs = bookingDate.getTime();
+          const isRefundEligible = bookingStartMs > (Date.now() + (2 * 60 * 60 * 1000));
+          
+          return `
+          <div class="app-card card rounded-2xl p-6 shadow-lg fade-in">
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-semibold text-gray-800">${booking.user?.name || 'Unknown User'}</h3>
+                <p class="text-gray-500 text-sm">${booking.user?.email || ''}</p>
+                <p class="text-gray-500 text-sm mt-1">Property: ${booking.space?.title || 'Deleted Property'}</p>
+                <p class="text-gray-500 text-sm">Date: ${new Date(booking.date).toLocaleDateString()} | ${booking.startTime} - ${booking.endTime}</p>
+                <p class="text-purple-600 font-semibold mt-1">₹${booking.amount}</p>
+              </div>
+              <div class="flex flex-col gap-2">
+                <span class="badge" style="background:#FEF3C7;color:#D97706">Cancellation Requested</span>
+                <p class="text-gray-400 text-xs">${booking.cancellationRequestedAt ? new Date(booking.cancellationRequestedAt).toLocaleString() : ''}</p>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4 pt-4 border-t">
+              <button 
+                onclick="${isRefundEligible ? `approveCancellation('${booking._id}')` : ''}" 
+                ${!isRefundEligible ? 'disabled' : ''}
+                class="px-6 py-2 rounded-xl text-white font-medium text-sm transition ${isRefundEligible ? 'btn-approve cursor-pointer' : 'cursor-not-allowed'}"
+                style="${!isRefundEligible ? 'background:#9CA3AF' : ''}"
+                title="${!isRefundEligible ? 'Booking is within 2 hours — refund not eligible' : 'Cancel and refund user'}"
+              >
+                ✓ Cancel & Refund
+              </button>
+              <button 
+                onclick="approveCancellationNoRefund('${booking._id}')"
+                class="px-6 py-2 rounded-xl text-white font-medium text-sm transition cursor-pointer"
+                style="background:#F59E0B"
+              >
+                ✓ Cancel, No Refund
+              </button>
+              <button onclick="openRejectCancellationModal('${booking._id}')" 
+                class="btn-reject px-6 py-2 rounded-xl text-white font-medium text-sm transition">
+                ✕ Reject
+              </button>
+            </div>
+            <div class="mt-3 flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full ${isRefundEligible ? 'bg-green-500' : 'bg-red-500'}"></div>
+              <p class="text-sm ${isRefundEligible ? 'text-green-600' : 'text-red-600'} font-medium">
+                ${isRefundEligible 
+                  ? '✓ Refund eligible — booking starts in more than 2 hours' 
+                  : '✗ No refund — booking starts within 2 hours'}
+              </p>
+            </div>
+          </div>
+        `}).join('');
+      } catch (err) {
+        listEl.innerHTML = `<div class="card rounded-2xl p-12 text-center"><p class="text-red-500">Failed to load</p></div>`;
+      }
+    }
+
+    async function approveCancellation(bookingId) {
+      if (!confirm('Cancel this booking and initiate refund?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/bookings/${bookingId}/approve-cancellation`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(data.message || 'Cancellation approved');
+          loadCancellations();
+        } else {
+          showToast(data.message || 'Failed to approve', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to approve cancellation', 'error');
+      }
+    }
+
+    async function approveCancellationNoRefund(bookingId) {
+      if (!confirm('Cancel this booking without refund? The user will NOT receive their money back.')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/bookings/${bookingId}/approve-cancellation-no-refund`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${authToken}`, 
+            'Content-Type': 'application/json' 
+          }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Booking cancelled, no refund issued');
+          loadCancellations();
+        } else {
+          showToast(data.message || 'Failed', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to cancel booking', 'error');
+      }
+    }
+
+    function openRejectCancellationModal(bookingId) {
+      selectedAppForReject = bookingId;
+      document.getElementById('reject-reason').value = '';
+      document.getElementById('reject-modal').classList.remove('hidden');
+      document.getElementById('reject-modal').dataset.type = 'cancellation';
+      document.getElementById('reject-modal-btn').textContent = 'Reject Cancellation';
+    }
+
+    async function confirmRejectCancellation() {
+      const reason = document.getElementById('reject-reason').value.trim();
+      if (!reason) { showToast('Please provide a rejection reason', 'error'); return; }
+      try {
+        const res = await fetch(`${API_BASE}/api/bookings/${selectedAppForReject}/reject-cancellation`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Cancellation request rejected');
+          closeRejectModal();
+          loadCancellations();
+        } else {
+          showToast(data.message || 'Failed to reject', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to reject', 'error');
+      }
+    }
+
+    // View Application Detail
+    async function viewApplication(id) {
+      try {
+        const res = await fetch(`${API_BASE}/admin/applications/${id}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        showDetailModal(data.application);
+      } catch (err) {
+        showToast('Failed to load application details', 'error');
+      }
+    }
+
+    function showDetailModal(app) {
+      selectedAppId = app._id;
+      const content = document.getElementById('detail-content');
+      const actions = document.getElementById('detail-actions');
+
+      const imageBase = API_BASE;
+
+      content.innerHTML = `
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Personal Info -->
+          <div class="space-y-4">
+            <h3 class="font-semibold text-gray-800 border-b pb-2">Personal Information</h3>
+            <div class="space-y-2">
+              <p><span class="text-gray-500">Name:</span> <span class="font-medium">${app.fullName}</span></p>
+              <p><span class="text-gray-500">Email:</span> <span class="font-medium">${app.email}</span></p>
+              <p><span class="text-gray-500">Alternate Email:</span> <span class="font-medium">${app.alternateEmail || 'N/A'}</span></p>
+              <p><span class="text-gray-500">Phone:</span> <span class="font-medium">${app.phone || 'N/A'}</span></p>
+              <p><span class="text-gray-500">Alternate Phone:</span> <span class="font-medium">${app.alternatePhone || 'N/A'}</span></p>
+            </div>
+
+            <h3 class="font-semibold text-gray-800 border-b pb-2 mt-6">Business Information</h3>
+            <div class="space-y-2">
+              <p><span class="text-gray-500">Service Type:</span> <span class="font-medium">${app.serviceType || 'N/A'}</span></p>
+              <p><span class="text-gray-500">Area:</span> <span class="font-medium">${app.area || 'N/A'}</span></p>
+            </div>
+          </div>
+
+          <!-- Address & ID -->
+          <div class="space-y-4">
+            <h3 class="font-semibold text-gray-800 border-b pb-2">Address</h3>
+            <div class="space-y-2">
+              <p><span class="text-gray-500">Address:</span> <span class="font-medium">${app.address || 'N/A'}</span></p>
+              <p><span class="text-gray-500">City:</span> <span class="font-medium">${app.city || 'N/A'}</span></p>
+              <p><span class="text-gray-500">State:</span> <span class="font-medium">${app.state || 'N/A'}</span></p>
+              <p><span class="text-gray-500">Pincode:</span> <span class="font-medium">${app.pincode || 'N/A'}</span></p>
+            </div>
+
+            <h3 class="font-semibold text-gray-800 border-b pb-2 mt-6">Identity</h3>
+            <div class="space-y-2">
+              <p><span class="text-gray-500">ID Type:</span> <span class="font-medium">${app.idType?.toUpperCase() || 'N/A'}</span></p>
+              <p><span class="text-gray-500">ID Number:</span> <span class="font-medium">${app.idNumber || 'N/A'}</span></p>
+            </div>
+          </div>
+
+          <!-- Documents -->
+          <div class="md:col-span-2">
+            <h3 class="font-semibold text-gray-800 border-b pb-2 mb-4">Documents</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              ${app.idImageUrl ? `
+                <div class="text-center">
+                  <img src="${app.idImageUrl}" alt="ID" class="doc-preview mx-auto mb-2" onclick="showImage('${app.idImageUrl}')">
+                  <p class="text-sm text-gray-500">ID Proof</p>
+                </div>
+              ` : '<p class="text-gray-400">No ID image</p>'}
+              
+              ${app.selfieUrl ? `
+                <div class="text-center">
+                  <img src="${app.selfieUrl}" alt="Selfie" class="doc-preview mx-auto mb-2" onclick="showImage('${app.selfieUrl}')">
+                  <p class="text-sm text-gray-500">Selfie</p>
+                </div>
+              ` : ''}
+              
+              ${app.addressProofUrl ? `
+                <div class="text-center">
+                  <img src="${app.addressProofUrl}" alt="Address Proof" class="doc-preview mx-auto mb-2" onclick="showImage('${app.addressProofUrl}')">
+                  <p class="text-sm text-gray-500">Address Proof</p>
+                </div>
+              ` : ''}
+              
+              ${app.businessProofUrl ? `
+                <div class="text-center">
+                  <img src="${app.businessProofUrl}" alt="Business Proof" class="doc-preview mx-auto mb-2" onclick="showImage('${app.businessProofUrl}')">
+                  <p class="text-sm text-gray-500">Business Proof</p>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Bank Details -->
+          <div class="md:col-span-2">
+            <h3 class="font-semibold text-gray-800 border-b pb-2 mb-4">Payment Details</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="bg-green-50 p-4 rounded-xl">
+                <p class="text-xs text-gray-500 mb-1">Bank Name</p>
+                <p class="font-semibold text-gray-800">${app.bankName || 'N/A'}</p>
+              </div>
+              <div class="bg-green-50 p-4 rounded-xl">
+                <p class="text-xs text-gray-500 mb-1">Account Number</p>
+                <p class="font-semibold text-gray-800">${app.bankAccountNumber ? '****' + app.bankAccountNumber.slice(-4) : 'N/A'}</p>
+              </div>
+              <div class="bg-green-50 p-4 rounded-xl">
+                <p class="text-xs text-gray-500 mb-1">IFSC Code</p>
+                <p class="font-semibold text-gray-800">${app.ifscCode || 'N/A'}</p>
+              </div>
+              <div class="bg-green-50 p-4 rounded-xl">
+                <p class="text-xs text-gray-500 mb-1">Branch</p>
+                <p class="font-semibold text-gray-800">${app.bankBranch || 'N/A'}</p>
+              </div>
+            </div>
+            ${app.upiId ? `
+              <div class="mt-4">
+                <div class="bg-purple-50 p-4 rounded-xl inline-flex items-center gap-2">
+                  <span class="text-xs text-gray-500">UPI ID:</span>
+                  <span class="font-semibold text-purple-700">${app.upiId}</span>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Rejection Reason -->
+          ${app.status === 'rejected' && app.rejectionReason ? `
+            <div class="md:col-span-2">
+              <h3 class="font-semibold text-red-600 border-b pb-2 mb-4">Rejection Reason</h3>
+              <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                <p class="text-gray-700">${app.rejectionReason}</p>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      // Actions based on status
+      if (app.status === 'pending') {
+        actions.innerHTML = `
+          <button onclick="approveApplication('${app._id}')" class="btn-approve px-8 py-3 rounded-xl text-white font-medium transition">
+            ✓ Approve
+          </button>
+          <button onclick="openRejectModal('${app._id}')" class="btn-reject px-8 py-3 rounded-xl text-white font-medium transition">
+            ✕ Reject
+          </button>
+        `;
+      } else {
+        actions.innerHTML = `
+          <button onclick="closeDetailModal()" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 font-medium transition">
+            Close
+          </button>
+        `;
+      }
+
+      document.getElementById('detail-modal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.add('hidden');
+      selectedAppId = null;
+    }
+
+    // Approve
+    async function approveApplication(id) {
+      if (!confirm('Are you sure you want to approve this application?')) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/applications/${id}/approve`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast('Application approved successfully');
+          closeDetailModal();
+          loadStats();
+          loadApplications(currentPage);
+        } else {
+          showToast(data.message || 'Failed to approve', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to approve application', 'error');
+      }
+    }
+
+    // Reject
+    function openRejectModal(id) {
+      selectedAppForReject = id;
+      document.getElementById('reject-reason').value = '';
+      document.getElementById('reject-modal').classList.remove('hidden');
+    }
+
+    function closeRejectModal() {
+      document.getElementById('reject-modal').classList.add('hidden');
+      document.getElementById('reject-modal').dataset.type = 'application';
+      document.getElementById('reject-modal-btn').textContent = 'Reject Application';
+      selectedAppForReject = null;
+    }
+
+    async function confirmReject() {
+      const reason = document.getElementById('reject-reason').value.trim();
+      if (!reason) {
+        showToast('Please provide a rejection reason', 'error');
+        return;
+      }
+
+      const modalType = document.getElementById('reject-modal').dataset.type;
+
+      if (modalType === 'cancellation') {
+        try {
+          const res = await fetch(`${API_BASE}/api/bookings/${selectedAppForReject}/reject-cancellation`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast('Cancellation request rejected');
+            closeRejectModal();
+            loadCancellations();
+          } else {
+            showToast(data.message || 'Failed to reject', 'error');
+          }
+        } catch (err) {
+          showToast('Failed to reject', 'error');
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/applications/${selectedAppForReject}/reject`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast('Application rejected');
+          closeRejectModal();
+          closeDetailModal();
+          loadStats();
+          loadApplications(currentPage);
+        } else {
+          showToast(data.message || 'Failed to reject', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to reject application', 'error');
+      }
+    }
+
+    // Image Modal
+    function showImage(src) {
+      document.getElementById('modal-image').src = src;
+      document.getElementById('image-modal').classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('image-modal').classList.add('hidden');
+    }
+
+    // Utils
+    function formatDate(date) {
+      return new Date(date).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast px-6 py-4 rounded-xl shadow-lg ${type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white font-medium`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDetailModal();
+        closeRejectModal();
+        closeImageModal();
+      }
+    });
+  </script>
+</body>
+</html>
