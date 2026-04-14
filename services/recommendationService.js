@@ -218,8 +218,6 @@ exports.getCollaborativeRecommendations = async (userId, limit = 10) => {
 
 exports.getHybridRecommendations = async (userId, limit = 10) => {
   try {
-    console.log('Getting recommendations for user:', userId);
-    
     if (!userId) {
       // For guests - return most booked spaces (trending)
       const trendingSpaces = await Booking.aggregate([
@@ -250,9 +248,6 @@ exports.getHybridRecommendations = async (userId, limit = 10) => {
       this.getContentBasedRecommendations(userId, limit * 2),
       this.getCollaborativeRecommendations(userId, limit * 2)
     ]);
-
-    console.log('Content-based count:', contentBased.length);
-    console.log('Collaborative count:', collaborative.length);
 
     const spaceMap = new Map();
     

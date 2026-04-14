@@ -29,42 +29,17 @@ Return only the JSON, nothing else.`;
 exports.smartSearch = async (req, res) => {
   try {
     const { query } = req.body;
-    console.log('AI Search request - query:', query);
 
     if (!query || query.trim() === '') {
       return res.status(400).json({ message: 'Query is required' });
     }
 
     const groqApiKey = process.env.GROQ_API_KEY;
-    console.log('Groq API Key exists:', !!groqApiKey);
     
     if (!groqApiKey || groqApiKey === 'gsk_your_groq_api_key_here') {
       return res.status(500).json({ 
         message: 'AI not configured. Please add GROQ_API_KEY to backend/.env file. Get free key at https://console.groq.com/keys'
-      });
-    }
-
-    // Call Groq API
-    console.log('Calling Groq API...');
-    const response = await axios.post(
-      GROQ_API_URL,
-      {
-        model: 'llama-3.1-8b-instant',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: query }
-        ],
-        temperature: 0.1,
-        max_tokens: 200
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    console.log('Groq API response:', response.data);
+});
 
     const aiResponse = response.data.choices[0]?.message?.content;
     

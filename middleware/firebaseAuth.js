@@ -49,7 +49,6 @@ const firebaseAuth = async (req, res, next) => {
     req.firebaseUser = firebaseUser;
     next();
   } catch (error) {
-    console.log('Firebase auth middleware error:', error);
     return res.status(500).json({ message: 'Authentication error' });
   }
 };

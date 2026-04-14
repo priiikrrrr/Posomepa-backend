@@ -72,7 +72,6 @@ Welcome aboard!
       };
 
       await sgMail.send(msg);
-      console.log('Approval email sent to:', toEmail);
       return { success: true };
     } catch (error) {
       console.error('SendGrid Error:', error.response?.body || error.message);
@@ -141,7 +140,6 @@ We appreciate your interest in joining PosomePa.
       };
 
       await sgMail.send(msg);
-      console.log('Rejection email sent to:', toEmail);
       return { success: true };
     } catch (error) {
       console.error('SendGrid Error:', error.response?.body || error.message);

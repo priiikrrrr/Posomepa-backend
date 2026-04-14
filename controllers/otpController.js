@@ -50,10 +50,6 @@ exports.sendOTP = async (req, res) => {
     });
     await newOTP.save();
 
-    // Using Firebase OTP - this old endpoint not used anymore
-    // const result = await twilioService.sendOTP(formattedPhone, otp);
-    console.log(`[OTP] Using Firebase OTP - old Twilio endpoint not called`);
-    
     res.status(200).json({ 
       message: 'Using Firebase OTP for phone verification',
       dev: false
@@ -299,8 +295,6 @@ exports.sendPhoneUpdateOTP = async (req, res) => {
       attempts: 0
     });
     await newOTP.save();
-
-    console.log(`[OTP] Phone update OTP for ${formattedPhone}: ${otp}`);
     
     res.status(200).json({ 
       message: 'OTP sent successfully',

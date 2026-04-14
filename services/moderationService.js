@@ -71,8 +71,6 @@ exports.moderateMessage = async (content) => {
   } catch (error) {
     console.error('Moderation error (Groq failed):', error.message);
     // Groq failed - allow the message through with basic pattern check only
-    // This prevents blocking legitimate messages due to API issues
-    console.log('Groq moderation unavailable, using basic pattern check only');
     return { allowed: true, reason: '', category: 'clean', fallback: true };
   }
 };

@@ -27,12 +27,7 @@ const upload = multer({
 
 router.post('/images', auth, upload.array('images', 10), async (req, res) => {
   try {
-    console.log('=== Upload request received ===');
-    console.log('User:', req.user);
-    console.log('Files:', req.files);
-    
     if (!req.files || req.files.length === 0) {
-      console.log('No files found in request');
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
@@ -46,15 +41,12 @@ router.post('/images', auth, upload.array('images', 10), async (req, res) => {
           publicId: result.publicId
         });
       } catch (cloudError) {
-        console.error('Cloudinary upload failed:', cloudError.message);
         return res.status(500).json({ message: 'Image upload failed: ' + cloudError.message });
       }
     }
 
-    console.log('Upload success, URLs:', imageUrls);
     res.json({ images: imageUrls });
   } catch (error) {
-    console.log('Upload error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -69,13 +61,12 @@ router.delete('/images', auth, async (req, res) => {
 
     const result = await deleteFromCloudinary(publicId);
     
-    if (result.success) {
+if (result.success) {
       res.json({ message: 'Image deleted from Cloudinary' });
     } else {
-      res.status(500).json({ message: 'Failed to delete image' });
+      res.status(500).json({ message: 'Failed to delete image from Cloudinary' });
     }
   } catch (error) {
-    console.log('Delete error:', error);
     res.status(500).json({ message: error.message });
   }
 });

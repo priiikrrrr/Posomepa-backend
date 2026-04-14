@@ -125,18 +125,12 @@ const verifyFirebaseToken = async (req, res) => {
   try {
     const { idToken, email, name, photoURL, uid, phone, fcmToken } = req.body;
 
-    console.log('=== verifyFirebaseToken ===');
-    console.log('name received:', name);
-    console.log('email received:', email);
-    console.log('uid received:', uid);
-
     if (!idToken || !uid) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
     const result = await verifyIdToken(idToken);
     if (!result.success) {
-      console.error('Firebase token verification failed:', result.error);
       return res.status(401).json({ message: 'Invalid Firebase token' });
     }
 
@@ -147,20 +141,15 @@ const verifyFirebaseToken = async (req, res) => {
     }
 
     let user = await User.findOne({ firebaseUid: uid });
-    console.log('User found by firebaseUid:', user ? user.name : 'NOT FOUND');
 
     if (!user && email) {
       user = await User.findOne({ email: email });
-      console.log('User found by email:', user ? user.name : 'NOT FOUND');
     }
 
     if (user) {
-      console.log('Before update - user.name:', user.name);
       user.firebaseUid = uid;
-      // Only update name from Google if user doesn't have one set
       if (name && !user.name) {
         user.name = name;
-        console.log('Setting initial name from Google:', name);
       }
       if (photoURL) user.avatar = photoURL;
       if (phone) user.phone = phone;
@@ -168,7 +157,6 @@ const verifyFirebaseToken = async (req, res) => {
         user.deviceTokens.push(fcmToken);
       }
       await user.save();
-      console.log('After update - user.name:', user.name);
     } else {
       try {
         const userEmail = email || `${uid}@firebase.user`;
@@ -180,16 +168,13 @@ const verifyFirebaseToken = async (req, res) => {
           role: 'user',
           deviceTokens: fcmToken ? [fcmToken] : []
         };
-        // Only add phone if it has a valid value (not empty/null)
         if (phone && phone.trim()) {
           userData.phone = phone.trim();
         }
         user = new User(userData);
         await user.save();
       } catch (createError) {
-        // Race condition: another request created user with same email already
         if (createError.code === 11000 && createError.keyPattern.email) {
-          console.log('Race condition detected, finding existing user by email');
           user = await User.findOne({ email: email });
           if (user) {
             user.firebaseUid = uid;

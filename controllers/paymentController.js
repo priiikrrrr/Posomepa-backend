@@ -18,10 +18,6 @@ exports.createOrder = async (req, res) => {
       bookingId = bookingId.bookingId;
     }
 
-    console.log('createOrder - TEST_MODE:', process.env.TEST_MODE);
-    console.log('createOrder - bookingId:', bookingId);
-    console.log('createOrder - userId:', req.user._id);
-
     const booking = await Booking.findById(bookingId)
       .populate('space', 'title');
 
@@ -36,9 +32,6 @@ exports.createOrder = async (req, res) => {
     const bookingUserId = String(booking.user);
     const requestUserId = String(req.user._id);
 
-    console.log('createOrder - bookingUserId:', bookingUserId);
-    console.log('createOrder - requestUserId:', requestUserId);
-
     if (bookingUserId !== requestUserId) {
       return res.status(403).json({ message: 'Access denied. You can only pay for your own bookings.' });
     }
@@ -52,7 +45,6 @@ exports.createOrder = async (req, res) => {
     let order;
     
     if (process.env.TEST_MODE === 'true') {
-      console.log('TEST_MODE: Creating mock order');
       order = {
         id: 'order_test_' + Date.now(),
         amount: amount,
