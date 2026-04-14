@@ -2,7 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { verifyIdToken } = require('../services/firebaseService');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'leaselink_jwt_secret_key_2024';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const verifyFirebaseOTP = async (req, res) => {
   try {

@@ -6,7 +6,7 @@ const User = require('../models/User');
 const emailService = require('../services/emailService');
 const path = require('path');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'leaselink_jwt_secret_key_2024';
+const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_ALTERNATE_EMAIL = process.env.ADMIN_ALTERNATE_EMAIL;
