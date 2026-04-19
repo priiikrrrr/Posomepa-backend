@@ -217,8 +217,8 @@ exports.rejectApplication = async (req, res) => {
     application.rejectedAt = new Date();
     application.reviewedBy = req.user._id;
     application.reviewedAt = new Date();
-    // Allow resubmit after 14 hours
-    application.canResubmitAt = new Date(Date.now() + 14 * 60 * 60 * 1000);
+    // Allow resubmit after 2 hours
+    application.canResubmitAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
     await application.save();
 
     // Update user status
@@ -255,7 +255,7 @@ exports.resubmitApplication = async (req, res) => {
       });
     }
 
-    // Check if 14 hours have passed
+    // Check if 2 hours have passed
     if (application.canResubmitAt && new Date() < application.canResubmitAt) {
       const hoursLeft = Math.ceil((application.canResubmitAt - new Date()) / (60 * 60 * 1000));
       return res.status(400).json({ 
