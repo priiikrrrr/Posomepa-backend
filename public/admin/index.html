@@ -533,10 +533,9 @@
         }
 
         listEl.innerHTML = data.bookings.map(booking => {
-          const bookingDate = new Date(booking.date);
+          const bookingDateStr = new Date(booking.date).toISOString().split('T')[0];
           const [startHours, startMins] = booking.startTime.split(':').map(Number);
-          bookingDate.setHours(startHours, startMins, 0, 0);
-          const bookingStartMs = bookingDate.getTime();
+          const bookingStartMs = new Date(`${bookingDateStr}T${String(startHours).padStart(2,'0')}:${String(startMins).padStart(2,'0')}:00+05:30`).getTime();
           const isRefundEligible = bookingStartMs > (Date.now() + (2 * 60 * 60 * 1000));
           
           return `

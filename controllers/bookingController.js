@@ -483,11 +483,10 @@ exports.approveCancellation = async (req, res) => {
       return res.status(400).json({ message: 'No cancellation request found for this booking' });
     }
 
-    // Check if booking is more than 2 hours away (using local time)
-    const bookingDate = new Date(booking.date);
+    // Check if booking is more than 2 hours away (IST-aware)
+    const bookingDateStr = new Date(booking.date).toISOString().split('T')[0];
     const [startHours, startMins] = booking.startTime.split(':').map(Number);
-    bookingDate.setHours(startHours, startMins, 0, 0);
-    const bookingStartMs = bookingDate.getTime();
+    const bookingStartMs = new Date(`${bookingDateStr}T${String(startHours).padStart(2,'0')}:${String(startMins).padStart(2,'0')}:00+05:30`).getTime();
     const twoHoursFromNow = Date.now() + (2 * 60 * 60 * 1000);
 
     // Only allow refund if more than 2 hours away
@@ -566,11 +565,10 @@ exports.approveCancellationNoRefund = async (req, res) => {
       return res.status(400).json({ message: 'No cancellation request found for this booking' });
     }
 
-    // Double check — block if refund is actually eligible (using local time)
-    const bookingDate = new Date(booking.date);
+    // Double check — block if refund is actually eligible (IST-aware)
+    const bookingDateStr = new Date(booking.date).toISOString().split('T')[0];
     const [startHours, startMins] = booking.startTime.split(':').map(Number);
-    bookingDate.setHours(startHours, startMins, 0, 0);
-    const bookingStartMs = bookingDate.getTime();
+    const bookingStartMs = new Date(`${bookingDateStr}T${String(startHours).padStart(2,'0')}:${String(startMins).padStart(2,'0')}:00+05:30`).getTime();
     const twoHoursFromNow = Date.now() + (2 * 60 * 60 * 1000);
 
     if (bookingStartMs > twoHoursFromNow) {
