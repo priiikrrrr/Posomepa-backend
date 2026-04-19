@@ -217,8 +217,8 @@ exports.rejectApplication = async (req, res) => {
     application.rejectedAt = new Date();
     application.reviewedBy = req.user._id;
     application.reviewedAt = new Date();
-    // Allow resubmit after 2 hours
-    application.canResubmitAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    // canResubmitAt is now calculated dynamically (2 hours from rejectedAt)
+    application.canResubmitAt = null;
     await application.save();
 
     // Update user status
@@ -255,11 +255,16 @@ exports.resubmitApplication = async (req, res) => {
       });
     }
 
-    // Check if 2 hours have passed
-    if (application.canResubmitAt && new Date() < application.canResubmitAt) {
-      const hoursLeft = Math.ceil((application.canResubmitAt - new Date()) / (60 * 60 * 1000));
+    // Check if 2 hours have passed (calculate dynamically from rejectedAt)
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    const rejectedAt = application.rejectedAt ? new Date(application.rejectedAt).getTime() : 0;
+    const twoHoursFromRejection = rejectedAt + TWO_HOURS;
+    const now = Date.now();
+
+    if (application.status === 'rejected' && now < twoHoursFromRejection) {
+      const hoursLeft = Math.ceil((twoHoursFromRejection - now) / (60 * 60 * 1000));
       return res.status(400).json({ 
-        message: `You can resubmit after ${hoursLeft} hours` 
+        message: `You can resubmit after ${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''}` 
       });
     }
 
@@ -296,18 +301,16 @@ exports.getRejectionInfo = async (req, res) => {
       return res.json({ canApply: true });
     }
     
-    const now = new Date();
-    const canResubmitAt = application.canResubmitAt;
-    const canResubmit = now >= canResubmitAt;
+    // Calculate 2 hours from rejection time dynamically
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    const rejectedAt = application.rejectedAt ? new Date(application.rejectedAt).getTime() : 0;
+    const twoHoursFromRejection = rejectedAt + TWO_HOURS;
+    const now = Date.now();
+    const canResubmit = now >= twoHoursFromRejection;
     
     // Calculate hours remaining
-    const hoursRemaining = canResubmitAt 
-      ? Math.max(0, Math.ceil((canResubmitAt - now) / (60 * 60 * 1000)))
-      : 0;
-    
-    const minutesRemaining = canResubmitAt
-      ? Math.max(0, Math.ceil((canResubmitAt - now) / (60 * 1000)))
-      : 0;
+    const hoursRemaining = Math.max(0, Math.ceil((twoHoursFromRejection - now) / (60 * 60 * 1000)));
+    const minutesRemaining = Math.max(0, Math.ceil((twoHoursFromRejection - now) / (60 * 1000)));
     
     // Format time remaining nicely
     let timeRemaining = '';
@@ -322,7 +325,7 @@ exports.getRejectionInfo = async (req, res) => {
     res.json({
       canApply: canResubmit,
       rejectionReason: application.rejectionReason || 'Your application was rejected',
-      canResubmitAt: canResubmitAt,
+      canResubmitAt: new Date(twoHoursFromRejection),
       timeRemaining: timeRemaining,
       hoursRemaining: hoursRemaining,
       minutesRemaining: minutesRemaining
