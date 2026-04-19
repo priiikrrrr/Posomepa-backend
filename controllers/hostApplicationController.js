@@ -282,3 +282,53 @@ exports.resubmitApplication = async (req, res) => {
     res.status(500).json({ message: 'Failed to resubmit application' });
   }
 };
+
+// Get user's rejection info for frontend check (Step 1)
+exports.getRejectionInfo = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // Find most recent rejected application
+    const application = await HostApplication.findOne({ user: userId })
+      .sort({ rejectedAt: -1 });
+    
+    if (!application || application.status !== 'rejected') {
+      return res.json({ canApply: true });
+    }
+    
+    const now = new Date();
+    const canResubmitAt = application.canResubmitAt;
+    const canResubmit = now >= canResubmitAt;
+    
+    // Calculate hours remaining
+    const hoursRemaining = canResubmitAt 
+      ? Math.max(0, Math.ceil((canResubmitAt - now) / (60 * 60 * 1000)))
+      : 0;
+    
+    const minutesRemaining = canResubmitAt
+      ? Math.max(0, Math.ceil((canResubmitAt - now) / (60 * 1000)))
+      : 0;
+    
+    // Format time remaining nicely
+    let timeRemaining = '';
+    if (!canResubmit) {
+      if (hoursRemaining >= 1) {
+        timeRemaining = `${hoursRemaining} hour${hoursRemaining !== 1 ? 's' : ''}`;
+      } else {
+        timeRemaining = `${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`;
+      }
+    }
+    
+    res.json({
+      canApply: canResubmit,
+      rejectionReason: application.rejectionReason || 'Your application was rejected',
+      canResubmitAt: canResubmitAt,
+      timeRemaining: timeRemaining,
+      hoursRemaining: hoursRemaining,
+      minutesRemaining: minutesRemaining
+    });
+  } catch (error) {
+    console.error('Get rejection info error:', error);
+    res.status(500).json({ message: 'Failed to get rejection info' });
+  }
+};

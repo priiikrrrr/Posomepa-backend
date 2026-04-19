@@ -487,7 +487,10 @@ exports.approveCancellation = async (req, res) => {
     const bookingDateStr = new Date(booking.date).toISOString().split('T')[0];
     const [startHours, startMins] = booking.startTime.split(':').map(Number);
     const bookingStartMs = new Date(`${bookingDateStr}T${String(startHours).padStart(2,'0')}:${String(startMins).padStart(2,'0')}:00+05:30`).getTime();
-    const twoHoursFromNow = Date.now() + (2 * 60 * 60 * 1000);
+    // Get current time in IST for comparison
+    const now = new Date();
+    const nowIST = new Date(`${now.toISOString().split('T')[0]}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00+05:30`).getTime();
+    const twoHoursFromNow = nowIST + (2 * 60 * 60 * 1000);
 
     // Only allow refund if more than 2 hours away
     if (bookingStartMs <= twoHoursFromNow) {
@@ -569,7 +572,10 @@ exports.approveCancellationNoRefund = async (req, res) => {
     const bookingDateStr = new Date(booking.date).toISOString().split('T')[0];
     const [startHours, startMins] = booking.startTime.split(':').map(Number);
     const bookingStartMs = new Date(`${bookingDateStr}T${String(startHours).padStart(2,'0')}:${String(startMins).padStart(2,'0')}:00+05:30`).getTime();
-    const twoHoursFromNow = Date.now() + (2 * 60 * 60 * 1000);
+    // Get current time in IST for comparison
+    const now = new Date();
+    const nowIST = new Date(`${now.toISOString().split('T')[0]}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00+05:30`).getTime();
+    const twoHoursFromNow = nowIST + (2 * 60 * 60 * 1000);
 
     if (bookingStartMs > twoHoursFromNow) {
       return res.status(400).json({ 

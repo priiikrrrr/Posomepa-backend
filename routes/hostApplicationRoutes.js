@@ -13,6 +13,7 @@ router.post('/', auth, upload.fields([
 ]), hostApplicationController.submitApplication);
 router.get('/my', auth, hostApplicationController.getMyApplication);
 router.post('/resubmit', auth, hostApplicationController.resubmitApplication);
+router.get('/rejection-info', auth, hostApplicationController.getRejectionInfo);
 
 // Admin routes (require authentication)
 router.get('/', auth, hostApplicationController.getAllApplications);
