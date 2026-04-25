@@ -264,6 +264,47 @@
     </div>
   </div>
 
+  <!-- Verify Bank Details Modal -->
+  <div id="verify-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/50" onclick="closeVerifyModal()"></div>
+    <div class="modal absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-8 w-full max-w-lg">
+      <h3 class="text-xl font-bold text-gray-800 mb-2">Verify Bank Details</h3>
+      <p class="text-gray-500 text-sm mb-6">Verify the bank details before approving this application.</p>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Bank Name</label>
+          <div id="verify-bankName" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-semibold text-gray-800"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Account Number</label>
+          <div id="verify-accountNumber" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-semibold text-gray-800"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">IFSC Code</label>
+          <div id="verify-ifscCode" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-semibold text-gray-800"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Branch</label>
+          <div id="verify-branch" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-semibold text-gray-800"></div>
+        </div>
+        <div id="verify-upi-container" class="hidden">
+          <label class="block text-sm font-medium text-gray-600 mb-1">UPI ID</label>
+          <div id="verify-upiId" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 font-semibold text-purple-700"></div>
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeVerifyModal()" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 font-medium transition">
+          Cancel
+        </button>
+        <button onclick="confirmApprove()" id="verify-modal-btn" class="btn-approve px-6 py-3 rounded-xl text-white font-medium transition">
+          ✓ Confirm & Approve
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Reject Reason Modal -->
   <div id="reject-modal" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0 bg-black/50" onclick="closeRejectModal()"></div>
@@ -749,6 +790,13 @@
                   <p class="text-sm text-gray-500">Business Proof</p>
                 </div>
               ` : ''}
+              
+              ${app.cancelledChequeUrl ? `
+                <div class="text-center">
+                  <img src="${app.cancelledChequeUrl}" alt="Cancelled Cheque" class="doc-preview mx-auto mb-2" onclick="showImage('${app.cancelledChequeUrl}')">
+                  <p class="text-sm text-gray-500">Cancelled Cheque</p>
+                </div>
+              ` : ''}
             </div>
           </div>
 
@@ -797,8 +845,9 @@
 
       // Actions based on status
       if (app.status === 'pending') {
+        setSelectedAppForVerify(app);
         actions.innerHTML = `
-          <button onclick="approveApplication('${app._id}')" class="btn-approve px-8 py-3 rounded-xl text-white font-medium transition">
+          <button onclick="openVerifyModalFromStored()" class="btn-approve px-8 py-3 rounded-xl text-white font-medium transition">
             ✓ Approve
           </button>
           <button onclick="openRejectModal('${app._id}')" class="btn-reject px-8 py-3 rounded-xl text-white font-medium transition">
@@ -819,6 +868,78 @@
     function closeDetailModal() {
       document.getElementById('detail-modal').classList.add('hidden');
       selectedAppId = null;
+    }
+
+    // Verify Modal
+    let selectedAppForVerify = null;
+
+    function setSelectedAppForVerify(app) {
+      selectedAppForVerify = app;
+    }
+
+    function openVerifyModalFromStored() {
+      if (selectedAppForVerify) {
+        openVerifyModal(selectedAppForVerify);
+      }
+    }
+
+    function openVerifyModal(app) {
+      selectedAppForVerify = app;
+      document.getElementById('verify-bankName').textContent = app.bankName || 'N/A';
+      document.getElementById('verify-accountNumber').textContent = app.bankAccountNumber || 'N/A';
+      document.getElementById('verify-ifscCode').textContent = app.ifscCode || 'N/A';
+      document.getElementById('verify-branch').textContent = app.bankBranch || 'N/A';
+      
+      const upiContainer = document.getElementById('verify-upi-container');
+      const upiEl = document.getElementById('verify-upiId');
+      if (app.upiId) {
+        upiEl.textContent = app.upiId;
+        upiContainer.classList.remove('hidden');
+      } else {
+        upiContainer.classList.add('hidden');
+      }
+      
+      document.getElementById('verify-modal').classList.remove('hidden');
+    }
+
+    function closeVerifyModal() {
+      document.getElementById('verify-modal').classList.add('hidden');
+      selectedAppForVerify = null;
+    }
+
+    async function confirmApprove() {
+      if (!selectedAppForVerify) return;
+      
+      const id = selectedAppForVerify._id;
+      const btn = document.getElementById('verify-modal-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px"></div>';
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/applications/${id}/approve`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast('Application approved successfully');
+          closeVerifyModal();
+          closeDetailModal();
+          loadStats();
+          loadApplications(currentPage);
+        } else {
+          showToast(data.message || 'Failed to approve', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to approve application', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✓ Confirm & Approve';
+      }
     }
 
     // Approve

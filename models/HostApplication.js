@@ -125,6 +125,10 @@ const hostApplicationSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  cancelledChequeUrl: {
+    type: String,
+    default: ''
+  },
   
   // Status
   status: {

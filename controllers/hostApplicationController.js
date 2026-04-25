@@ -23,6 +23,7 @@ exports.submitApplication = async (req, res) => {
     const selfieUrl = files.selfie?.[0]?.path || '';
     const addressProofUrl = files.addressProof?.[0]?.path || '';
     const businessProofUrl = files.businessProof?.[0]?.path || '';
+    const cancelledChequeUrl = files.cancelledCheque?.[0]?.path || '';
 
     const applicationData = {
       user: userId,
@@ -48,6 +49,7 @@ exports.submitApplication = async (req, res) => {
       bankBranch: req.body.bankBranch,
       bankName: req.body.bankName,
       upiId: req.body.upiId || '',
+      cancelledChequeUrl,
       status: 'pending'
     };
 
